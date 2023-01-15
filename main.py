@@ -50,8 +50,8 @@ def login():
 def user():
     if 'user' in session:
         user = session['user']
+        userId = session['userId']
         if request.method == 'POST':
-            userId = session['userId']
             note = request.form['nt']
             if len(note) > 0:
                 with engine.connect() as submit_note:
@@ -96,10 +96,7 @@ def signup():
 def mynotes():
     if 'user' in session:
         user = session['user']
-        with engine.connect() as connection:
-            sql_txt = f"SELECT userId FROM users WHERE email='{user}'"
-            result = connection.execute(sql_txt)
-            userId = [a for a in result][0][0]
+        userId = session['userId']
         with engine.connect() as connection:
             sql_txt = f"SELECT noteData, categoryId, date_format(`timeStamp` , '%Y-%m-%d') as format_date FROM notes WHERE userId='{userId}' ORDER BY `timeStamp` DESC"
             result = connection.execute(sql_txt)
