@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %} 
+<div>
+    <table>
+        <tr>
+            <th>Notes</th>
+            <th>Category ID</th>
+            <th>Date</th>
+        </tr>
+    {% for note in notes %}
+        <tr>
+            <td>{{ note[0] }}</td>
+            <td>{{ note[1] }}</td>
+            <td>{{ note[2] }}</td>
+        </tr>
+    {% endfor %}
+    </table>
+    <a href=user><input type=”button” value=user></a> 
+    <a href=logout><input type=”button” value=logout></a> 
+</div>
+{% endblock %}

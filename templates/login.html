@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+	{% with messages = get_flashed_messages() %}
+	{% if messages %}
+		{% for message in messages %}
+			<p>{{ message }}</p>
+		{% endfor %}
+	{% endif %}
+	{% endwith %}
+<div>
+<h1>progressApp.©</h1>
+
+	<form action="#" method="post" autocomplete="off" class="login_form">
+		<p><input type="text" name="nm" placeholder="username" class="user_field"/></p>
+		<p><input type="password" name="pw" placeholder="password" class="pw_field"></p>
+		<p><input type="submit" value="Log In" class="submit_button"/></p>
+	</form>
+	<a href=signup><input type=”button” value=signup></a>	
+</div>
+{% endblock %}

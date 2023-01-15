@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %} 
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+<div>
+    <form action="#" method="post" autocomplete="off" class="note_form">
+        <p>Hello, {{user}}</p>
+        <p><input type="text" name="nt" placeholder="Your note here" class="note_field"></p>
+        <p><input type="submit" value="Save Note" class="submit_button"/></p>
+    </form>
+    <a href=mynotes><input type=”button” value=mynotes></a> 
+    <a href=logout><input type=”button” value=logout></a> 
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flex Navbar</title>
+    <style>
+      .main-nav {
+        display: flex;
+        justify-content: space-between;
+        background-color: orangered;
+        padding: 1em;
+        border-radius: 3px;
+      }
+
+      .main-nav ul {
+        list-style-type: none;
+        display: flex;
+        margin: 0;
+        padding: 0;
+      }
+
+      .main-nav li {
+        font-size: 1.1em;
+        margin-right: 1em;
+        color: white;
+        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande',
+          'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+        cursor: pointer;
+      }
+
+      form button {
+        background-color: white;
+        color: orangered;
+        border: none;
+        border-radius: 10px;
+      }
+
+      @media screen and (max-width: 570px) {
+        .main-nav,
+        .main-nav ul {
+          flex-direction: column;
+        }
+
+        .main-nav {
+          align-items: center;
+        }
+
+        .main-nav form {
+          margin-top: 1em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="main-nav">
+      <ul>
+        <li>Logo</li>
+        <li>Home</li>
+        <li>Products</li>
+        <li>Service</li>
+      </ul>
+      <form>
+        <input type="search" placeholder="Search" />
+        <button>Go</button>
+      </form>
+    </nav>
+  </body>
+</html>
