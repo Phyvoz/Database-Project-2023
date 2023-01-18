@@ -19,7 +19,7 @@ def encryptData(password):
 
 @app.route("/")
 def home():
-    return render_template('index.html', content='Testing')
+    return redirect(url_for('login'))
 
 @app.route("/login", methods=['POST', 'GET'])
 def login():
