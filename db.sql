@@ -79,7 +79,7 @@ GRANT SELECT (`noteId`, `userId`, `categoryId`, `timeStamp`, `modified`) ON prog
 FLUSH PRIVILEGES;
 SET PASSWORD FOR 'noteAnalyst'@'localhost' = 'noteAnalystPWRDBPassword';
 
-
+/* PROCEDURE TO PERFORM SOME QUERIES ON THE APP*/
 DROP PROCEDURE IF EXISTS login_proc;
 DELIMITER $$
 CREATE PROCEDURE login_procedure(IN email VARCHAR(100), IN password VARCHAR(100))
@@ -94,6 +94,30 @@ END;
 $$
 DELIMITER ;
 
+/* VIEW TO JOIN NOTES TABLE WITH CATEGORIES TABLE*/
+DROP VIEW IF EXISTS cat_note_join;
+CREATE VIEW cat_note_join AS  
+SELECT n.noteData, c.categoryName, date_format(n.`timeStamp` , '%Y-%m-%d') as format_date, n.userId 
+FROM notes AS n 
+LEFT JOIN categories AS c 
+ON n.categoryId=c.categoryId 
+ORDER BY n.`timeStamp` DESC;
+
+/* PROCEDURE TO GET NOTES DATA*/
+DROP PROCEDURE IF EXISTS notes_procedure;
+DELIMITER $$
+CREATE PROCEDURE notes_procedure(IN userId INT)
+BEGIN
+	set @userId = userId;
+	set @stmt = "SELECT noteData, categoryName, format_date FROM cat_note_join WHERE userId=?;";
+	PREPARE stmt FROM @stmt;
+	EXECUTE stmt USING @userId;
+	DEALLOCATE PREPARE stmt;
+END;
+$$
+DELIMITER ;
+
+/* TRIGGER THAT UPDATES THE LOGS AND SUBSCRIPTION WHEN NEW USER IS CREATED */
 DROP TRIGGER IF EXISTS subscription_after_insert;
 DELIMITER %%
 CREATE TRIGGER subscription_after_insert
@@ -107,6 +131,34 @@ INSERT INTO logs(userId, action)
 VALUES(NEW.userId, 'signUp');
 END
 %%
+DELIMITER ;
+
+/* TRIGGER THAT UPDATES THE MODIFIED WHEN THERE IS A MODIFICATION AND ADDS IT TO LOGS */
+DROP TRIGGER IF EXISTS modify_after_update;
+DELIMITER $$
+CREATE TRIGGER modify_after_update
+BEFORE UPDATE 
+ON notes
+FOR EACH ROW 
+BEGIN
+IF NEW.noteData <> OLD.noteData THEN SET NEW.modified=TRUE;
+END IF ; 
+INSERT INTO logs(userId, action, noteId)
+VALUES(OLD.userId, 'modify', OLD.noteId);
+END
+$$
+DELIMITER ;
+
+/* TRIGGER THAT LOGS WHEN THE USER ADDS A NEW NOTE */
+DELIMITER $$
+CREATE TRIGGER note_after_insert
+AFTER INSERT
+ON notes
+FOR EACH ROW 
+BEGIN
+INSERT INTO logs(userId, action, noteId) VALUES(NEW.userId, 'add', NEW.noteID);
+END
+$$
 DELIMITER ;
 
 
