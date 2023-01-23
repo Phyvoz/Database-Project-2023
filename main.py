@@ -3,6 +3,7 @@ from datetime import timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.sql import select, text, insert
 import hashlib
+import re 
 
 app = Flask(__name__)
 app.secret_key = 'pwr'
@@ -10,12 +11,15 @@ app.permanent_session_lifetime = timedelta(minutes=5)
 engine = create_engine("mysql+mysqlconnector://root:password@localhost/progressApp")
 
 def encryptData(password):
-    formatted = f'{password}'
-    m = hashlib.sha256()
-    m.update(b"{formatted}")
-    m.digest()
-    return m.hexdigest()
+    hashed_string = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    return hashed_string
 
+def validateEmail(email):
+    if len(email) > 7:
+        if re.match("^.+@(\\[?)[a-zA-Z0-9\\-\\.]+\\.([a-zA-Z]{2,3}|[0-9]{1,3})(]?)$", email) != None:
+            return True
+    else:
+        return False
 
 @app.route("/")
 def home():
@@ -27,7 +31,7 @@ def login():
         session.permanent = True
         user = request.form['nm'].strip()
         password = encryptData(request.form['pw'])
-        sql_txt = f"SELECT email, password, userId FROM users WHERE email='{user}' AND password='{password}'"
+        sql_txt = f"CALL login_procedure('{user}', '{password}');"
         login_stmt = text(sql_txt)
         with engine.connect() as connection:
             result = connection.execute(login_stmt)
@@ -51,11 +55,17 @@ def user():
     if 'user' in session:
         user = session['user']
         userId = session['userId']
+        with engine.connect() as get_categories:
+            get_cats = f'SELECT c.categoryName, c.categoryId FROM users AS u LEFT JOIN categories AS c ON u.userId=c.userId WHERE c.userId={userId}'
+            query1 = text(get_cats)
+            cats = get_categories.execute(query1)
+            categories = [a for a in cats]
         if request.method == 'POST':
             note = request.form['nt']
+            cat = request.form['cat']
             if len(note) > 0:
                 with engine.connect() as submit_note:
-                    sql_txt = f"INSERT INTO notes (userId, noteData, categoryId) VALUES ('{userId}', {repr(note)}, 1)"
+                    sql_txt = f"INSERT INTO notes (userId, noteData, categoryId) VALUES ('{userId}', {repr(note)}, {cat})"
                     submit_note.execute(sql_txt)
                     flash('Progress Saved!')
             else:
@@ -63,7 +73,31 @@ def user():
     else:
         flash('You are not logged in!')
         return redirect(url_for('login'))
-    return render_template('user.html', user=user)
+    return render_template('user.html', user=user, categories=categories)
+
+@app.route("/categories", methods=['GET', 'POST'])
+def categories():
+    if 'user' in session:
+        user = session['user']
+        userId = session['userId']
+        if request.method == 'POST':
+            cat = request.form['ct']
+            with engine.connect() as get_categories:
+                get_cats = f'SELECT categoryName FROM categories WHERE userId={userId}'
+                query1 = text(get_cats)
+                cats = get_categories.execute(query1)
+                categories = [a[0] for a in cats]
+            if len(cat) > 0 and cat not in categories:
+                with engine.connect() as submit_cat:
+                    sql_txt = f"INSERT INTO categories (userId, categoryName) VALUES ('{userId}', {repr(cat)})"
+                    submit_cat.execute(sql_txt)
+                    flash(f'Category {cat} Saved!')
+            else:
+                flash('Category is empty or already exists')
+    else:
+        flash('You are not logged in!')
+        return redirect(url_for('login'))
+    return render_template('categories.html')
 
 @app.route("/logout")
 def logout():
@@ -76,7 +110,11 @@ def logout():
 def signup():
     if request.method == 'POST':
         user = request.form['nm_register'].strip()
-        password = encryptData(request.form['pw_register'])
+        password = request.form['pw_register']
+        if not validateEmail(user):
+            flash('Invalid email')
+            return redirect(url_for('signup'))
+        password = encryptData(password)
         with engine.connect() as connection:
             sql_txt = f"SELECT email FROM users WHERE email='{user}'"
             result = connection.execute(sql_txt)
@@ -98,7 +136,7 @@ def mynotes():
         user = session['user']
         userId = session['userId']
         with engine.connect() as connection:
-            sql_txt = f"SELECT noteData, categoryId, date_format(`timeStamp` , '%Y-%m-%d') as format_date FROM notes WHERE userId='{userId}' ORDER BY `timeStamp` DESC"
+            sql_txt = f"CALL notes_procedure({userId});"
             result = connection.execute(sql_txt)
             notes = [a for a in result]        
         return render_template('mynotes.html', notes=notes)
