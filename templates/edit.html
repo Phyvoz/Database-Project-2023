@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %} 
+<div>
+    <form action="#" method="post" autocomplete="off" class="note_form">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+        <p>Here you can modify your note</p>
+        <p><input type="text" name="mod_note" placeholder="{{note}}" class="note_field" id="mod_note"></p>
+        <select name="cat_mod" id="cat_mod">
+        {% for category in ex_categories %}
+            <option value="{{ category[1] }}">{{ category[0] }}</option>
+        {% endfor %}
+        </select>
+        <p><input type="submit" value="Save Note" class="submit_button"/></p> 
+    </form>
+</div>
+<div class="notes_logout">
+    <a href=http://127.0.0.1:5000/user><input type=”button” value=mynotes class="mynotes"></a> 
+    <a href=http://127.0.0.1:5000/logout><input type=”button” value=logout class="logout"></a> 
+</div>
+
+{% endblock %}
