@@ -21,6 +21,11 @@ def validateEmail(email):
     else:
         return False
 
+def log(userId, action):
+    with engine.connect() as sumbit_log:
+        sql = f"INSERT INTO logs(userId, action) VALUES ({userId}, '{action}')"
+        sumbit_log.execute(sql)
+
 @app.route("/")
 def home():
     return redirect(url_for('login'))
@@ -39,6 +44,7 @@ def login():
         if len(msg) > 0 and user == str(msg[0][0]) and password == str(msg[0][1]):
             session['user'] = user
             session['userId'] = msg[0][2]
+            log(session['userId'], 'login')
         else:
             flash(message='Wrong email or Password')
             return redirect(url_for('login'))
@@ -56,7 +62,7 @@ def user():
         user = session['user']
         userId = session['userId']
         with engine.connect() as get_categories:
-            get_cats = f'SELECT c.categoryName, c.categoryId FROM users AS u LEFT JOIN categories AS c ON u.userId=c.userId WHERE c.userId={userId}'
+            get_cats = f'SELECT categoryName, categoryId FROM categories WHERE userId={userId}'
             query1 = text(get_cats)
             cats = get_categories.execute(query1)
             categories = [a for a in cats]
@@ -101,6 +107,7 @@ def categories():
 
 @app.route("/logout")
 def logout():
+    log(session['userId'], 'logout')
     session.pop('user', None)
     session.pop('userId', None)
     flash('You have been logged out')
@@ -140,6 +147,59 @@ def mynotes():
             result = connection.execute(sql_txt)
             notes = [a for a in result]        
         return render_template('mynotes.html', notes=notes)
+    else:
+        flash('You are not logged in!')
+        return redirect(url_for('login'))
+
+@app.route("/delete/<id>")
+def delete(id):
+    if 'user' in session:
+        user = session['user']
+        userId = session['userId']
+        with engine.connect() as get_notes:
+            get_nts = f'SELECT noteId FROM notes WHERE userId={userId}'
+            query1 = text(get_nts)
+            nts = get_notes.execute(query1)
+            notes = [a[0] for a in nts]
+            if int(id) not in notes:
+                flash('You have no permission to delete this note!')
+                return redirect(url_for('mynotes'))
+        with engine.connect() as connection:
+            sql_txt = f"DELETE FROM notes WHERE noteId={id}"
+            result = connection.execute(sql_txt)
+        flash('Note deleted!')
+        return redirect(url_for('mynotes'))
+    else:
+        flash('You are not logged in!')
+        return redirect(url_for('login'))
+
+@app.route("/edit/<id>", methods=['GET', 'POST'])
+def edit(id):
+    if 'user' in session:
+        user = session['user']
+        userId = session['userId']
+        with engine.connect() as get_notes:
+            get_nts = f'SELECT noteId, noteData FROM notes WHERE userId={userId}'
+            query1 = text(get_nts)
+            nts = get_notes.execute(query1)
+            notes = [a[0] for a in nts]
+        if int(id) not in notes:
+            flash('You have no permission to edit this note!')
+            return redirect(url_for('mynotes'))
+        with engine.connect() as get_categories:
+            get_cats = f'SELECT categoryName, categoryId FROM categories WHERE userId={userId}'
+            query1 = text(get_cats)
+            cats = get_categories.execute(query1)
+            ex_categories = [a for a in cats]
+        if request.method == 'POST':
+            note = request.form['mod_note']
+            category = request.form['cat_mod']
+            with engine.connect() as connection:
+                sql_txt = f"UPDATE notes SET noteData={repr(note)}, categoryId={category} WHERE noteId={id}"
+                result = connection.execute(sql_txt)
+            flash('Note updated!')
+            return redirect(url_for('mynotes'))
+        return render_template('edit.html', ex_categories=ex_categories)
     else:
         flash('You are not logged in!')
         return redirect(url_for('login'))
