@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %} 
+<div>
+    <form action="#" method="post" autocomplete="off" class="note_form">
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+        <p>Hello, {{user}}!</p>
+        <p><input type="text" name="ct" placeholder="Enter new category name" class="note_field" id="ct"></p>
+        <p><input type="submit" value="Save new category" class="submit_cat"/></p> 
+    </form>
+</div>
+    <div class="notes_logout">
+        <a href=mynotes><input type=”button” value=mynotes class="mynotes"></a> 
+        <a href=logout><input type=”button” value=logout class="logout"></a> 
+    </div>
+
+{% endblock %}
