@@ -161,14 +161,15 @@ def delete(id):
             query1 = text(get_nts)
             nts = get_notes.execute(query1)
             notes = [a[0] for a in nts]
-            if int(id) not in notes:
-                flash('You have no permission to delete this note!')
-                return redirect(url_for('mynotes'))
-        with engine.connect() as connection:
-            sql_txt = f"DELETE FROM notes WHERE noteId={id}"
-            result = connection.execute(sql_txt)
-        flash('Note deleted!')
-        return redirect(url_for('mynotes'))
+        if int(id) not in notes:
+            flash('You have no permission to delete this note!')
+            return redirect(url_for('mynotes'))
+        else:
+            with engine.connect() as connection:
+                sql_txt = f"DELETE FROM notes WHERE noteId={id}"
+                result = connection.execute(sql_txt)
+            flash('Note deleted!')
+            return redirect(url_for('mynotes'))
     else:
         flash('You are not logged in!')
         return redirect(url_for('login'))
@@ -186,20 +187,26 @@ def edit(id):
         if int(id) not in notes:
             flash('You have no permission to edit this note!')
             return redirect(url_for('mynotes'))
-        with engine.connect() as get_categories:
-            get_cats = f'SELECT categoryName, categoryId FROM categories WHERE userId={userId}'
-            query1 = text(get_cats)
-            cats = get_categories.execute(query1)
-            ex_categories = [a for a in cats]
-        if request.method == 'POST':
-            note = request.form['mod_note']
-            category = request.form['cat_mod']
-            with engine.connect() as connection:
-                sql_txt = f"UPDATE notes SET noteData={repr(note)}, categoryId={category} WHERE noteId={id}"
-                result = connection.execute(sql_txt)
-            flash('Note updated!')
-            return redirect(url_for('mynotes'))
-        return render_template('edit.html', ex_categories=ex_categories)
+        else:
+            with engine.connect() as get_note:
+                get_nt = f'SELECT noteData FROM notes WHERE noteId={id}'
+                query2 = text(get_nt)
+                nt = get_note.execute(query2)
+                note = [a[0] for a in nt]
+            with engine.connect() as get_categories:
+                get_cats = f'SELECT categoryName, categoryId FROM categories WHERE userId={userId}'
+                query1 = text(get_cats)
+                cats = get_categories.execute(query1)
+                ex_categories = [a for a in cats]
+            if request.method == 'POST':
+                note = request.form['mod_note']
+                category = request.form['cat_mod']
+                with engine.connect() as connection:
+                    sql_txt = f"UPDATE notes SET noteData={repr(note)}, categoryId={category} WHERE noteId={id}"
+                    result = connection.execute(sql_txt)
+                flash('Note updated!')
+                return redirect(url_for('mynotes'))
+            return render_template('edit.html', ex_categories=ex_categories, note=note)
     else:
         flash('You are not logged in!')
         return redirect(url_for('login'))
