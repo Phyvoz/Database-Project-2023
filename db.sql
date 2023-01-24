@@ -97,7 +97,7 @@ DELIMITER ;
 /* VIEW TO JOIN NOTES TABLE WITH CATEGORIES TABLE*/
 DROP VIEW IF EXISTS cat_note_join;
 CREATE VIEW cat_note_join AS  
-SELECT n.noteData, c.categoryName, date_format(n.`timeStamp` , '%Y-%m-%d') as format_date, n.userId 
+SELECT n.noteData, c.categoryName, date_format(n.`timeStamp` , '%Y-%m-%d') as format_date, n.userId, n.noteId
 FROM notes AS n 
 LEFT JOIN categories AS c 
 ON n.categoryId=c.categoryId 
@@ -109,7 +109,7 @@ DELIMITER $$
 CREATE PROCEDURE notes_procedure(IN userId INT)
 BEGIN
 	set @userId = userId;
-	set @stmt = "SELECT noteData, categoryName, format_date FROM cat_note_join WHERE userId=?;";
+	set @stmt = "SELECT noteData, categoryName, format_date, noteId FROM cat_note_join WHERE userId=?;";
 	PREPARE stmt FROM @stmt;
 	EXECUTE stmt USING @userId;
 	DEALLOCATE PREPARE stmt;
@@ -150,6 +150,7 @@ $$
 DELIMITER ;
 
 /* TRIGGER THAT LOGS WHEN THE USER ADDS A NEW NOTE */
+DROP TRIGGER IF EXISTS notes_after_insert;
 DELIMITER $$
 CREATE TRIGGER note_after_insert
 AFTER INSERT
@@ -157,6 +158,19 @@ ON notes
 FOR EACH ROW 
 BEGIN
 INSERT INTO logs(userId, action, noteId) VALUES(NEW.userId, 'add', NEW.noteID);
+END
+$$
+DELIMITER ;
+
+/* TRIGGER THAT LOGS WHEN THE USER DELETES A NOTE */
+DROP TRIGGER IF EXISTS note_after_delete;
+DELIMITER $$
+CREATE TRIGGER note_after_delete
+AFTER DELETE
+ON notes
+FOR EACH ROW 
+BEGIN
+INSERT INTO logs(userId, action, noteId) VALUES(OLD.userId, 'remove', OLD.noteID);
 END
 $$
 DELIMITER ;
