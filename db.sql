@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS progressApp.users (
 	userId INT auto_increment NOT NULL,
 	email varchar(100) NOT NULL,
 	password varchar(100) NOT NULL,
+	isAdmin BOOL DEFAULT FALSE NOT NULL,
 	CONSTRAINT users_PK PRIMARY KEY (userId)
 );
 
@@ -79,16 +80,30 @@ GRANT SELECT (`noteId`, `userId`, `categoryId`, `timeStamp`, `modified`) ON prog
 FLUSH PRIVILEGES;
 SET PASSWORD FOR 'noteAnalyst'@'localhost' = 'noteAnalystPWRDBPassword';
 
-/* PROCEDURE TO PERFORM SOME QUERIES ON THE APP*/
+/* PROCEDURE TO CHECK LOG IN CREDENTIALS THE APP*/
 DROP PROCEDURE IF EXISTS login_proc;
 DELIMITER $$
 CREATE PROCEDURE login_procedure(IN email VARCHAR(100), IN password VARCHAR(100))
 BEGIN
 	set @email = email;
 	set @password = password;
-	set @stmt = "SELECT email, password, userId FROM users WHERE email=? AND password=?";
+	set @stmt = "SELECT email, password, userId, isAdmin FROM users WHERE email=? AND password=?";
 	PREPARE stmt FROM @stmt;
 	EXECUTE stmt USING @email, @password;
+	DEALLOCATE PREPARE stmt;
+END;
+$$
+DELIMITER ;
+
+/* PROCEDURE TO RETRIEVE THE CATEGORIES*/
+DROP PROCEDURE IF EXISTS get_categories;
+DELIMITER $$
+CREATE PROCEDURE get_categories(IN userId INT)
+BEGIN
+	set @userId=userId;
+	set @stmt = 'SELECT categoryName, categoryId FROM categories WHERE userId = ?';
+	PREPARE stmt FROM @stmt;
+	EXECUTE stmt USING @userId;
 	DEALLOCATE PREPARE stmt;
 END;
 $$
@@ -150,7 +165,7 @@ $$
 DELIMITER ;
 
 /* TRIGGER THAT LOGS WHEN THE USER ADDS A NEW NOTE */
-DROP TRIGGER IF EXISTS notes_after_insert;
+DROP TRIGGER IF EXISTS notes_after
 DELIMITER $$
 CREATE TRIGGER note_after_insert
 AFTER INSERT
@@ -158,19 +173,6 @@ ON notes
 FOR EACH ROW 
 BEGIN
 INSERT INTO logs(userId, action, noteId) VALUES(NEW.userId, 'add', NEW.noteID);
-END
-$$
-DELIMITER ;
-
-/* TRIGGER THAT LOGS WHEN THE USER DELETES A NOTE */
-DROP TRIGGER IF EXISTS note_after_delete;
-DELIMITER $$
-CREATE TRIGGER note_after_delete
-AFTER DELETE
-ON notes
-FOR EACH ROW 
-BEGIN
-INSERT INTO logs(userId, action, noteId) VALUES(OLD.userId, 'remove', OLD.noteID);
 END
 $$
 DELIMITER ;
