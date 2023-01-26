@@ -10,7 +10,7 @@
         {% endif %}
         {% endwith %}
         <p>Here you can modify your note</p>
-        <p><input type="text" name="mod_note" placeholder="{{note[0]}}" class="note_field" id="mod_note"></p>
+        <p><input type="text" name="mod_note" value="{{note[0]}}" class="note_field" id="mod_note"></p>
         <select name="cat_mod" id="cat_mod">
         {% for category in ex_categories %}
             <option value="{{ category[1] }}">{{ category[0] }}</option>

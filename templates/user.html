@@ -9,6 +9,10 @@
             {% endfor %}
         {% endif %}
         {% endwith %}
+        {% if isAdmin == 1 %}
+            <a href=backup><input type=”button” value="Make Backup Now" class="backup"></a>
+            <a href="restore"><input type="button" value="Restore DB from backup" class="backup"></a>
+        {% endif %}
         <p>Logged in as {{user}}!</p>
         <p><input type="text" name="nt" placeholder="Your note here" class="note_field" id="nt"></p>
         <select name="cat" id="cat">

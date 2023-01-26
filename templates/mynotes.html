@@ -16,6 +16,7 @@
             <th>Date</th>
             <th>Edit</th>
             <th>Delete</th>
+            <th>Modified</th>
         </tr>
     {% for note in notes %}
         <tr>
@@ -24,6 +25,11 @@
             <td>{{ note[2] }}</td>
             <td><a href=edit/{{note[3]}}><input type="button" value="Edit" class="edit_button"></a></td>
             <td><a href=delete/{{note[3]}}><input type="button" value="Delete" class="delete_button"></a></td>
+            {% if note[4]==1 %}
+            <td>Yes</td>
+            {% else %}
+            <td>No</td>
+            {% endif %}
         </tr>
     {% endfor %}
     </table>
