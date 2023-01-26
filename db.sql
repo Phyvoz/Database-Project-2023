@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS progressApp.users (
 	email varchar(100) NOT NULL,
 	password varchar(100) NOT NULL,
 	isAdmin BOOL DEFAULT FALSE NOT NULL,
-	CONSTRAINT users_PK PRIMARY KEY (userId)
+	CONSTRAINT users_PK PRIMARY KEY (userId),
+	CONSTRAINT pw_not_null CHECK (LENGTH(password)>4)
 );
 
 CREATE TABLE IF NOT EXISTS progressApp.categories (
@@ -47,7 +48,8 @@ CREATE TABLE IF NOT EXISTS progressApp.subscription (
 	transaction_id INT,
 	subscription_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	validity INT,
-	CONSTRAINT subscriptions_FK FOREIGN KEY (userId) REFERENCES progressApp.users(userId)
+	CONSTRAINT subscriptions_FK FOREIGN KEY (userId) REFERENCES progressApp.users(userId),
+	CONSTRAINT transaction_check CHECK(transaction_id > 0)
 )
 ENGINE=InnoDB
 DEFAULT CHARSET=utf8mb4
@@ -109,10 +111,25 @@ END;
 $$
 DELIMITER ;
 
+/* PROCEDURE TO INSERT NEW CATEGORIES*/
+DROP PROCEDURE IF EXISTS insert_category;
+DELIMITER $$
+CREATE PROCEDURE insert_category(IN userId INT, IN cat VARCHAR(100))
+BEGIN
+	set @userId=userId;
+	set @cat=cat;
+	set @stmt = 'INSERT INTO categories (userId, categoryName) VALUES (?, ?)';
+	PREPARE stmt FROM @stmt;
+	EXECUTE stmt USING @userId, @cat;
+	DEALLOCATE PREPARE stmt;
+END;
+$$
+DELIMITER ;
+
 /* VIEW TO JOIN NOTES TABLE WITH CATEGORIES TABLE*/
 DROP VIEW IF EXISTS cat_note_join;
 CREATE VIEW cat_note_join AS  
-SELECT n.noteData, c.categoryName, date_format(n.`timeStamp` , '%Y-%m-%d') as format_date, n.userId, n.noteId
+SELECT n.noteData, c.categoryName, date_format(n.`timeStamp` , '%Y-%m-%d') as format_date, n.userId, n.noteId, n.modified
 FROM notes AS n 
 LEFT JOIN categories AS c 
 ON n.categoryId=c.categoryId 
@@ -124,7 +141,7 @@ DELIMITER $$
 CREATE PROCEDURE notes_procedure(IN userId INT)
 BEGIN
 	set @userId = userId;
-	set @stmt = "SELECT noteData, categoryName, format_date, noteId FROM cat_note_join WHERE userId=?;";
+	set @stmt = "SELECT noteData, categoryName, format_date, noteId, modified FROM cat_note_join WHERE userId=?;";
 	PREPARE stmt FROM @stmt;
 	EXECUTE stmt USING @userId;
 	DEALLOCATE PREPARE stmt;
@@ -144,6 +161,8 @@ INSERT INTO subscription(userID, validity)
 VALUES (NEW.userId, FLOOR(RAND()*(12+1)));
 INSERT INTO logs(userId, action)
 VALUES(NEW.userId, 'signUp');
+INSERT INTO categories(userId)
+VALUES(NEW.userId);
 END
 %%
 DELIMITER ;
@@ -176,6 +195,8 @@ INSERT INTO logs(userId, action, noteId) VALUES(NEW.userId, 'add', NEW.noteID);
 END
 $$
 DELIMITER ;
+
+INSERT INTO users(email, password, isAdmin) VALUES ('admin@admin.com', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', TRUE);
 
 
 
