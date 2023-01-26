@@ -9,9 +9,15 @@
             {% endfor %}
         {% endif %}
         {% endwith %}
-        <p>Hello, {{user}}!</p>
-        <p><input type="text" name="nt" placeholder="Your note here" class="note_field"></p>
-        <p><input type="submit" value="Save Note" class="submit_button"/></p>
+        <p>Logged in as {{user}}!</p>
+        <p><input type="text" name="nt" placeholder="Your note here" class="note_field" id="nt"></p>
+        <select name="cat" id="cat">
+        {% for category in categories %}
+            <option value="{{ category[1] }}">{{ category[0] }}</option>
+        {% endfor %}
+        </select>
+        <a href=categories><input type=”button” value="Create new category" class="new_cat"></a>
+        <p><input type="submit" value="Save Note" class="submit_button"/></p> 
     </form>
 </div>
     <div class="notes_logout">

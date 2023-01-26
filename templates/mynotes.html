@@ -2,17 +2,28 @@
 
 {% block content %} 
 <div>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
     <table>
         <tr>
             <th>Notes</th>
-            <th>Category ID</th>
+            <th>Category</th>
             <th>Date</th>
+            <th>Edit</th>
+            <th>Delete</th>
         </tr>
     {% for note in notes %}
         <tr>
             <td>{{ note[0] }}</td>
             <td>{{ note[1] }}</td>
             <td>{{ note[2] }}</td>
+            <td><a href=edit/{{note[3]}}><input type="button" value="Edit" class="edit_button"></a></td>
+            <td><a href=delete/{{note[3]}}><input type="button" value="Delete" class="delete_button"></a></td>
         </tr>
     {% endfor %}
     </table>
