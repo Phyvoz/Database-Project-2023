@@ -4,11 +4,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.sql import select, text, insert, bindparam
 import hashlib
 import re 
+import os
+import time
 
 app = Flask(__name__)
 app.secret_key = 'pwr'
 app.permanent_session_lifetime = timedelta(minutes=5)
-engine = create_engine("mysql+mysqlconnector://root:password@localhost/progressApp")
+base_user = 'root'
+base_password = 'password'
+engine = create_engine(f"mysql+mysqlconnector://{base_user}:{base_password}@localhost/progressApp")
 
 def encryptData(password):
     hashed_string = hashlib.sha256(password.encode('utf-8')).hexdigest()
@@ -45,11 +49,12 @@ def login():
         if len(msg) > 0 and user == str(msg[0][0]) and password == str(msg[0][1]):
             session['user'] = user
             session['userId'] = msg[0][2]
+            session['isAdmin'] = msg[0][3]
             log(session['userId'], 'login')
         else:
             flash(message='Wrong email or Password')
             return redirect(url_for('login'))
-        flash(message=str(msg), category="info")
+        #flash(message=str(msg), category="info")
         return redirect(url_for('user', usr=user))
     else:
         if 'user' in session:
@@ -61,9 +66,10 @@ def login():
 def user():
     if 'user' in session:
         user = session['user']
+        isAdmin = session['isAdmin']
         userId = session['userId']
         with engine.connect() as get_categories:
-            get_cats = text('SELECT categoryName, categoryId FROM categories WHERE userId = :userId')
+            get_cats = text('CALL get_categories(:userId);')
             query1 = get_cats.bindparams(userId=userId)
             cats = get_categories.execute(query1)
             categories = [a for a in cats]
@@ -81,7 +87,7 @@ def user():
     else:
         flash('You are not logged in!')
         return redirect(url_for('login'))
-    return render_template('user.html', user=user, categories=categories)
+    return render_template('user.html', user=user, categories=categories, isAdmin=isAdmin)
 
 @app.route("/categories", methods=['GET', 'POST'])
 def categories():
@@ -91,7 +97,7 @@ def categories():
         if request.method == 'POST':
             cat = request.form['ct']
             with engine.connect() as get_categories:
-                get_cats = text('SELECT categoryName FROM categories WHERE userId=:userId')
+                get_cats = text('CALL get_categories(:userId);')
                 query1 = get_cats.bindparams(userId=userId)
                 cats = get_categories.execute(query1)
                 categories = [a[0] for a in cats]
@@ -113,6 +119,7 @@ def logout():
     log(session['userId'], 'logout')
     session.pop('user', None)
     session.pop('userId', None)
+    session.pop('isAdmin', None)
     flash('You have been logged out')
     return redirect(url_for('login'))
 
@@ -218,6 +225,40 @@ def edit(id):
     else:
         flash('You are not logged in!')
         return redirect(url_for('login'))
+
+@app.route("/backup", methods=['GET', 'POST'])
+def backup():
+    is_admin = session['isAdmin']
+    if is_admin == 1:
+        HOST='localhost'
+        PORT='3306'
+        database = 'progressApp'
+        filestamp = time.strftime('%Y-%m-%d-%s')
+        cwd = os.getcwd()
+        os.popen("mysqldump -h %s -P %s -u %s -p%s %s > %s.sql" % (HOST,PORT,base_user,base_password,database,cwd+"/backup/"+database+"_"+filestamp))
+        flash('Backup created!')
+        return redirect(url_for('mynotes'))
+    else:
+        flash('No permission to backup!')
+        return redirect(url_for('mynotes'))
+
+@app.route("/restore", methods=['GET', 'POST'])
+def restore():
+    is_admin = session['isAdmin']
+    if is_admin == 1:
+        files = [a for a in os.listdir(f'{os.getcwd()}/backup')]
+        if request.method == 'POST':
+            file = request.form['file']
+            HOST='localhost'
+            PORT='3306'
+            database = 'progressApp'
+            os.popen("mysql -h %s -P %s -u %s -p%s %s < %s" % (HOST,PORT,base_user,base_password,database,f'{os.getcwd()}/backup/'+file))
+            flash('Backup restored!')
+            return redirect(url_for('mynotes'))
+    else:
+        flash('No permission to restore!')
+        return redirect(url_for('mynotes'))
+    return render_template('restore.html', files=files)
 
 
 if __name__ == '__main__':

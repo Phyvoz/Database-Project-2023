@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %} 
+<select name="file" id="file">
+    {% for file in files %}
+        <option value="{{ file }}">{{ file }}</option>
+    {% endfor %}
+    </select>
+    <p><input type="submit" value="Restore Database"/></p>
+{% endblock %}
